@@ -1,0 +1,32 @@
+version: '3'
+services:
+  db:
+    image: postgres
+    volumes:
+      - ./tmp/db:/var/lib/postgresql/datai
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: 'trust'
+  web:
+    build: .
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    volumes:
+      - .:/myapp
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+  https-portal:
+    image: steveltn/https-portal:1
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    restart: always
+    environment:
+      DOMAINS: "telechill.site -> http://web:3000"
+      STAGE: production
+      FORCE_RENEW: "true"
+      CLIENT_MAX_BODY_SIZE: 5G
+    volumes:
+      - ./org-chimata-ssl-certs:/var/lib/https-portal
